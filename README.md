@@ -1,98 +1,98 @@
-# vinext-starter
+# Project Library
 
-A clean full-stack starter running on
-[vinext](https://github.com/cloudflare/vinext), with optional Cloudflare D1 and
-Drizzle support.
+A minimal, library-style portfolio for exploring software projects as living
+notes rather than product landing pages.
 
-## Prerequisites
+Each project entry can include a brief, core functions, technologies,
+screenshots with individual captions, source and demo links, and optional
+question-and-answer notes.
 
-- Node.js `>=22.13.0`
+## Features
 
-## Quick Start
+- Searchable and filterable project index
+- Compact, information-first project pages
+- Responsive light and dark themes
+- Password-protected owner editor
+- Manual project creation and editing
+- Multiple screenshot uploads with captions and image descriptions
+- JSON export and import for backups and environment migration
+- Cloudflare D1 project storage and R2 screenshot storage
+
+## Technology
+
+- Next.js-compatible routing through [vinext](https://github.com/cloudflare/vinext)
+- React and TypeScript
+- Cloudflare D1
+- Cloudflare R2
+- CSS with responsive layouts and persistent theme preference
+
+## Local development
+
+Requirements:
+
+- Node.js 22.13 or newer
+- npm
+
+Install and start:
 
 ```bash
 npm install
 npm run dev
-npm run build
 ```
 
-This starter does not use `wrangler.jsonc`.
+The local site is available at `http://localhost:3000`.
 
-## Included Shape
+## Admin configuration
 
-- edit site code under `app/`
-- `.openai/hosting.json` declares optional Sites D1 and R2 bindings
-- `vite.config.ts` simulates declared bindings for local development
-- `db/schema.ts` starts intentionally empty
-- `examples/d1/` contains an optional D1 example surface
-- `drizzle.config.ts` supports local migration generation when needed
+Create a local `.dev.vars` file:
 
-## Workspace Auth Headers
-
-OpenAI workspace sites can read the current user's email from
-`oai-authenticated-user-email`.
-
-SIWC-authenticated workspace sites may also receive
-`oai-authenticated-user-full-name` when the user's SIWC profile has a non-empty
-`name` claim. The full-name value is percent-encoded UTF-8 and is accompanied by
-`oai-authenticated-user-full-name-encoding: percent-encoded-utf-8`.
-
-Treat the full name as optional and fall back to email when it is absent:
-
-```tsx
-import { headers } from "next/headers";
-
-export default async function Home() {
-  const requestHeaders = await headers();
-  const email = requestHeaders.get("oai-authenticated-user-email");
-  const encodedFullName = requestHeaders.get("oai-authenticated-user-full-name");
-  const fullName =
-    encodedFullName &&
-    requestHeaders.get("oai-authenticated-user-full-name-encoding") ===
-      "percent-encoded-utf-8"
-      ? decodeURIComponent(encodedFullName)
-      : null;
-
-  const displayName = fullName ?? email;
-  // ...
-}
+```dotenv
+ADMIN_PASSWORD_HASH=<sha256-password-hash>
+ADMIN_SESSION_SECRET=<long-random-secret>
 ```
 
-## Optional Dispatch-Owned ChatGPT Sign-In
+The raw admin password is never stored in source control. `.dev.vars` and other
+environment files are ignored by Git.
 
-Import the ready-to-use helpers from `app/chatgpt-auth.ts` when the site needs
-optional or required ChatGPT sign-in:
+The editor is available at `/admin`.
 
-- Use `getChatGPTUser()` for optional signed-in UI.
-- Use `requireChatGPTUser(returnTo)` for server-rendered pages that should send
-  anonymous visitors through Sign in with ChatGPT.
-- Use `chatGPTSignInPath(returnTo)` and `chatGPTSignOutPath(returnTo)` for
-  browser links or actions.
-- Pass a same-origin relative `returnTo` path for the destination after sign-in
-  or sign-out. The helper validates and safely encodes it.
-- Mark protected pages with `export const dynamic = "force-dynamic"` because
-  they depend on per-request identity headers.
+## Storage
 
-Dispatch owns `/signin-with-chatgpt`, `/signout-with-chatgpt`, `/callback`, the
-OAuth cookies, and identity header injection. Do not implement app routes for
-those reserved paths. Routes that do not import and call the helper remain
-anonymous-compatible.
+- Repository-backed starter entries live in `app/data/projects.ts`.
+- Projects created or changed through the editor are stored in D1 and override
+  matching repository-backed entries by URL slug.
+- Uploaded screenshots are stored in R2.
+- Exported JSON contains project records and screenshot references, but not the
+  image binaries.
 
-SIWC establishes identity only; it does not prove workspace membership. Use the
-Sites hosting platform's access policy controls for workspace-wide restrictions,
-or enforce explicit server-side membership or allowlist checks.
+For local development, the Cloudflare bindings are simulated by the Vite
+configuration.
 
-Use SIWC for account pages, user-specific dashboards, saved records, and write
-actions tied to the current ChatGPT user. Leave public content anonymous.
+## Verification
 
-## Useful Commands
+```bash
+npm test
+npm run lint
+```
 
-- `npm run dev`: start local development
-- `npm run build`: verify the vinext build output
-- `npm test`: build the starter and verify its rendered loading skeleton
-- `npm run db:generate`: generate Drizzle migrations after schema changes
+`npm test` creates a production build and runs the project contract tests.
 
-## Learn More
+## Deployment
 
-- [vinext Documentation](https://github.com/cloudflare/vinext)
-- [Drizzle D1 Guide](https://orm.drizzle.team/docs/get-started/d1-new)
+The repository is configured for OpenAI Sites through
+`.openai/hosting.json`, with:
+
+- `DB` as the D1 binding
+- `MEDIA` as the R2 binding
+
+Set `ADMIN_PASSWORD_HASH` and `ADMIN_SESSION_SECRET` in the production
+environment before using the owner editor.
+
+When moving existing local project records to production:
+
+1. Save every local edit.
+2. Export a JSON backup from the local owner editor.
+3. Deploy the application.
+4. Sign in to the production owner editor.
+5. Import the JSON backup.
+6. Upload screenshots directly in production.
