@@ -163,7 +163,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
                       width={screenshot.width}
                       height={screenshot.height}
                       sizes="(max-width: 900px) 90vw, 680px"
-                      unoptimized={screenshot.src.startsWith("/api/media?key=")}
+                      unoptimized
                     />
                     <figcaption>{screenshot.caption}</figcaption>
                   </figure>

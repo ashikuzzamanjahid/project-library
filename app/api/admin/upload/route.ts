@@ -1,4 +1,4 @@
-import { env } from "cloudflare:workers";
+import { put } from "@vercel/blob";
 import {
   requireApiOwner,
   validSameOriginMutation,
@@ -47,14 +47,15 @@ export async function POST(request: Request) {
     .replace(/-+/g, "-");
   const key = `projects/${safeSlug}/${crypto.randomUUID()}-${safeName}`;
 
-  await env.MEDIA.put(key, file.stream(), {
-    httpMetadata: { contentType: file.type },
-    customMetadata: { owner: owner.email },
+  const blob = await put(key, file, {
+    access: "public",
+    addRandomSuffix: true,
+    contentType: file.type,
   });
 
   return Response.json({
     screenshot: {
-      src: `/api/media?key=${encodeURIComponent(key)}`,
+      src: blob.url,
       alt: "",
       caption: "",
       width: Number.isFinite(width) && width > 0 ? Math.round(width) : 1600,

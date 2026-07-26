@@ -20,7 +20,7 @@ test("public library keeps discovery and project notes easy to reach", async () 
   assert.match(projectPage, /Core functions/);
   assert.match(projectPage, /Screenshots/);
   assert.match(projectPage, /<details/);
-  assert.match(projectPage, /unoptimized=\{screenshot\.src\.startsWith/);
+  assert.match(projectPage, /sizes="\(max-width: 900px\) 90vw, 680px"\s+unoptimized/);
   assert.match(sidebar, /Owner editor/);
   for (const slug of [
     "project-alexandria",

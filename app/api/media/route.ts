@@ -1,18 +1,12 @@
-import { env } from "cloudflare:workers";
-
-export async function GET(request: Request) {
-  const key = new URL(request.url).searchParams.get("key");
-  if (!key || !key.startsWith("projects/")) {
-    return new Response("Not found", { status: 404 });
-  }
-
-  const object = await env.MEDIA.get(key);
-  if (!object) return new Response("Not found", { status: 404 });
-
-  const headers = new Headers();
-  object.writeHttpMetadata(headers);
-  headers.set("etag", object.httpEtag);
-  headers.set("cache-control", "public, max-age=31536000, immutable");
-  headers.set("x-content-type-options", "nosniff");
-  return new Response(object.body, { headers });
+export async function GET() {
+  return new Response(
+    "This legacy media reference does not contain the original image. Upload the screenshot again from the admin editor.",
+    {
+      status: 404,
+      headers: {
+        "content-type": "text/plain; charset=utf-8",
+        "x-content-type-options": "nosniff",
+      },
+    },
+  );
 }

@@ -16,7 +16,8 @@ question-and-answer notes.
 - Manual project creation and editing
 - Multiple screenshot uploads with captions and image descriptions
 - JSON export and import for backups and environment migration
-- Cloudflare D1 project storage and R2 screenshot storage
+- Upstash Redis project storage
+- Vercel Blob screenshot storage
 
 ## Technology
 
@@ -44,11 +45,14 @@ The local site is available at `http://localhost:3000`.
 
 ## Admin configuration
 
-Create a local `.dev.vars` file:
+Create a local `.env.local` file:
 
 ```dotenv
 ADMIN_PASSWORD_HASH=<sha256-password-hash>
 ADMIN_SESSION_SECRET=<long-random-secret>
+UPSTASH_REDIS_REST_URL=<upstash-rest-url>
+UPSTASH_REDIS_REST_TOKEN=<upstash-rest-token>
+BLOB_READ_WRITE_TOKEN=<vercel-blob-token>
 ```
 
 The raw admin password is never stored in source control. `.dev.vars` and other
@@ -59,14 +63,11 @@ The editor is available at `/admin`.
 ## Storage
 
 - Repository-backed starter entries live in `app/data/projects.ts`.
-- Projects created or changed through the editor are stored in D1 and override
+- Projects created or changed through the editor are stored in Upstash Redis and override
   matching repository-backed entries by URL slug.
-- Uploaded screenshots are stored in R2.
+- Uploaded screenshots are stored in Vercel Blob.
 - Exported JSON contains project records and screenshot references, but not the
   image binaries.
-
-For local development, the Cloudflare bindings are simulated by the Vite
-configuration.
 
 ## Verification
 
@@ -79,14 +80,10 @@ npm run lint
 
 ## Deployment
 
-The repository is configured for OpenAI Sites through
-`.openai/hosting.json`, with:
-
-- `DB` as the D1 binding
-- `MEDIA` as the R2 binding
-
-Set `ADMIN_PASSWORD_HASH` and `ADMIN_SESSION_SECRET` in the production
-environment before using the owner editor.
+Import the GitHub repository into Vercel, connect an Upstash Redis database and
+a public Vercel Blob store, then set `ADMIN_PASSWORD_HASH` and
+`ADMIN_SESSION_SECRET` in the Vercel project environment before using the owner
+editor.
 
 When moving existing local project records to production:
 

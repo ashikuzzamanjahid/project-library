@@ -1,4 +1,4 @@
-import { env } from "cloudflare:workers";
+import { del } from "@vercel/blob";
 import type { Project } from "../../../data/projects";
 import {
   deleteProject,
@@ -168,12 +168,14 @@ export async function DELETE(request: Request) {
   const existing = await getLibraryProject(slug);
   await deleteProject(slug);
 
-  const mediaKeys = (existing?.screenshots ?? []).flatMap((screenshot) => {
-    if (!screenshot.src.startsWith("/api/media?")) return [];
-    const key = new URL(screenshot.src, request.url).searchParams.get("key");
-    return key?.startsWith(`projects/${slug}/`) ? [key] : [];
-  });
-  if (mediaKeys.length) await env.MEDIA.delete(mediaKeys);
+  const mediaUrls = (existing?.screenshots ?? [])
+    .map((screenshot) => screenshot.src)
+    .filter(
+      (src) =>
+        src.startsWith("https://") &&
+        new URL(src).hostname.endsWith("blob.vercel-storage.com"),
+    );
+  if (mediaUrls.length) await del(mediaUrls);
 
   return Response.json({ deleted: slug });
 }

@@ -1,4 +1,3 @@
-import { env } from "cloudflare:workers";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
@@ -10,8 +9,11 @@ type AdminSecrets = {
   ADMIN_SESSION_SECRET?: string;
 };
 
-function secrets() {
-  return env as unknown as AdminSecrets;
+function secrets(): AdminSecrets {
+  return {
+    ADMIN_PASSWORD_HASH: process.env.ADMIN_PASSWORD_HASH,
+    ADMIN_SESSION_SECRET: process.env.ADMIN_SESSION_SECRET,
+  };
 }
 
 function bytesToHex(bytes: ArrayBuffer) {
