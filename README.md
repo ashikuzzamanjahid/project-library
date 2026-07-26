@@ -55,6 +55,9 @@ UPSTASH_REDIS_REST_TOKEN=<upstash-rest-token>
 BLOB_READ_WRITE_TOKEN=<vercel-blob-token>
 ```
 
+The Vercel Marketplace integration may supply `KV_REST_API_URL` and
+`KV_REST_API_TOKEN` instead. Both naming styles are supported.
+
 The raw admin password is never stored in source control. `.dev.vars` and other
 environment files are ignored by Git.
 

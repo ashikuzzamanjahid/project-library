@@ -4,20 +4,32 @@ import { projects as fileProjects } from "./projects";
 
 const PROJECTS_KEY = "project-library:projects";
 
+function redisEnvironment() {
+  return {
+    url:
+      process.env.UPSTASH_REDIS_REST_URL ??
+      process.env.KV_REST_API_URL ??
+      "",
+    token:
+      process.env.UPSTASH_REDIS_REST_TOKEN ??
+      process.env.KV_REST_API_TOKEN ??
+      "",
+  };
+}
+
 function databaseConfigured() {
-  return Boolean(
-    process.env.UPSTASH_REDIS_REST_URL &&
-      process.env.UPSTASH_REDIS_REST_TOKEN,
-  );
+  const { url, token } = redisEnvironment();
+  return Boolean(url && token);
 }
 
 function database() {
-  if (!databaseConfigured()) {
+  const { url, token } = redisEnvironment();
+  if (!url || !token) {
     throw new Error(
       "Project editing is unavailable until Upstash Redis is connected.",
     );
   }
-  return Redis.fromEnv();
+  return new Redis({ url, token });
 }
 
 export async function getStoredProjects(): Promise<Project[]> {
