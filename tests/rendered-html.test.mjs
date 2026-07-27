@@ -19,6 +19,7 @@ test("public library keeps discovery and project notes easy to reach", async () 
   assert.match(projectPage, /Project brief/);
   assert.match(projectPage, /Core functions/);
   assert.match(projectPage, /compact-function-list/);
+  assert.match(projectPage, /core-functions-text/);
   assert.match(projectPage, /project-custom-section/);
   assert.match(projectPage, /project-content-box/);
   assert.match(projectPage, /content-box-images/);
@@ -48,6 +49,9 @@ test("owner editor supports minimal projects and optional rich content", async (
   assert.match(editor, /Caption for this image/);
   assert.match(editor, /Optional questions and answers/);
   assert.match(editor, /Custom project sections/);
+  assert.match(editor, /Core functions/);
+  assert.match(editor, /coreFunctionBoxes/);
+  assert.match(editor, /\+ Add another box/);
   assert.match(editor, /\+ Add section/);
   assert.match(editor, /\+ Add box/);
   assert.match(editor, /uploadBoxImages/);
@@ -61,6 +65,7 @@ test("owner editor supports minimal projects and optional rich content", async (
   assert.match(projectsApi, /item\.question && item\.answer/);
   assert.match(projectsApi, /url\.protocol === "http:"/);
   assert.match(projectsApi, /customSections/);
+  assert.match(projectsApi, /coreFunctionBoxes/);
   assert.match(projectsApi, /normalizeImage/);
   assert.match(projectsApi, /section\.boxes\.flatMap/);
 });

@@ -45,6 +45,7 @@ export type Project = {
     title: string;
     description: string;
   }[];
+  coreFunctionBoxes?: string[];
   screenshots?: ProjectImage[];
   customSections?: ProjectCustomSection[];
   architecture?: string[];

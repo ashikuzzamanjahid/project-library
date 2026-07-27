@@ -17,7 +17,7 @@ The editor supports:
 - Creating and deleting project entries
 - Editing all library metadata
 - Writing the brief and project fundamentals
-- Adding, removing, and editing functions
+- Writing all core functions in one multiline field
 - Uploading screenshots
 - Writing screenshot descriptions and captions
 - Creating and reordering custom project sections
@@ -105,16 +105,11 @@ Open `app/data/projects.ts` and add a new object inside the `projects` array.
     "Summarize the current result or project status.",
   ],
 
-  features: [
-    {
-      title: "Document upload",
-      description: "Users can upload documents for processing.",
-    },
-    {
-      title: "Structured extraction",
-      description: "The system converts document content into structured data.",
-    },
-  ],
+  coreFunctionBoxes: [`Document upload: Users can upload documents for processing.
+
+Structured extraction: The system converts document content into structured data.
+
+Result review: Users can validate and export the structured output.`],
 
   screenshots: [
     {

@@ -28,14 +28,19 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
 
   if (!project) notFound();
 
-  const features =
-    project.features?.length
-      ? project.features
-      :
-    project.capabilities.map((capability) => ({
-      title: capability,
-      description: `A core function of the ${project.title} project.`,
-    }));
+  const coreFunctionBoxes = project.coreFunctionBoxes?.length
+    ? project.coreFunctionBoxes
+    : project.features?.length
+      ? [
+          project.features
+            .map((feature) =>
+              feature.description
+                ? `${feature.title}: ${feature.description}`
+                : feature.title,
+            )
+            .join("\n\n"),
+        ]
+      : [project.capabilities.join("\n")].filter(Boolean);
   const customSections = project.customSections ?? [];
   const questionsNumber = String(customSections.length + 4).padStart(2, "0");
 
@@ -133,16 +138,13 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
                 <span>02</span>
                 <h2>Core functions</h2>
               </div>
-              <div className="compact-function-list">
-                {features.length ? (
-                  <ul>
-                    {features.map((feature, index) => (
-                      <li key={`${feature.title}-${index}`}>
-                        <strong>{feature.title}</strong>
-                        <p>{feature.description}</p>
-                      </li>
-                    ))}
-                  </ul>
+              <div className="core-function-boxes">
+                {coreFunctionBoxes.length ? (
+                  coreFunctionBoxes.map((content, index) => (
+                    <div className="compact-function-list" key={index}>
+                      <p className="core-functions-text">{content}</p>
+                    </div>
+                  ))
                 ) : (
                   <p className="empty-note">
                     Functions have not been documented yet.

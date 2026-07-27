@@ -27,6 +27,7 @@ function emptyProject(number: number): Project {
     result: "",
     overview: [],
     features: [],
+    coreFunctionBoxes: [""],
     screenshots: [],
     customSections: [],
     architecture: [],
@@ -43,6 +44,24 @@ function commaList(value: string) {
     .split(",")
     .map((item) => item.trim())
     .filter(Boolean);
+}
+
+function coreFunctionBoxes(project: Project) {
+  if (Array.isArray(project.coreFunctionBoxes)) {
+    return project.coreFunctionBoxes.length ? project.coreFunctionBoxes : [""];
+  }
+  if (project.features?.length) {
+    return [
+      project.features
+        .map((feature) =>
+          feature.description
+            ? `${feature.title}: ${feature.description}`
+            : feature.title,
+        )
+        .join("\n\n"),
+    ];
+  }
+  return [project.capabilities.join("\n")];
 }
 
 const UPLOAD_TARGET_BYTES = 700 * 1024;
@@ -648,30 +667,9 @@ export function ProjectEditor({
                 />
               </Field>
             </div>
-            <ArrayEditor
-              title="Functions"
-              items={draft.features ?? []}
-              onChange={(items) => update("features", items)}
-              emptyItem={{ title: "", description: "" }}
-              renderItem={(item, index, change) => (
-                <>
-                  <input
-                    placeholder="Function name"
-                    value={item.title}
-                    onChange={(event) =>
-                      change(index, { ...item, title: event.target.value })
-                    }
-                  />
-                  <textarea
-                    rows={2}
-                    placeholder="What this function does"
-                    value={item.description}
-                    onChange={(event) =>
-                      change(index, { ...item, description: event.target.value })
-                    }
-                  />
-                </>
-              )}
+            <CoreFunctionsEditor
+              boxes={coreFunctionBoxes(draft)}
+              onChange={(boxes) => update("coreFunctionBoxes", boxes)}
             />
           </EditorSection>
 
@@ -895,6 +893,80 @@ function moveItem<T>(items: T[], from: number, to: number) {
   const [item] = next.splice(from, 1);
   next.splice(to, 0, item);
   return next;
+}
+
+function CoreFunctionsEditor({
+  boxes,
+  onChange,
+}: {
+  boxes: string[];
+  onChange: (boxes: string[]) => void;
+}) {
+  function change(index: number, value: string) {
+    const next = [...boxes];
+    next[index] = value;
+    onChange(next);
+  }
+
+  return (
+    <div className="core-functions-editor">
+      <div className="core-functions-editor-heading">
+        <div>
+          <strong>Core functions</strong>
+          <small>
+            Keep everything in one box, or add another box only when useful.
+          </small>
+        </div>
+        <button type="button" onClick={() => onChange([...boxes, ""])}>
+          + Add another box
+        </button>
+      </div>
+
+      {boxes.map((content, index) => (
+        <article className="core-function-editor-box" key={index}>
+          <header>
+            <span>BOX {String(index + 1).padStart(2, "0")}</span>
+            <div>
+              <button
+                type="button"
+                disabled={index === 0}
+                onClick={() => onChange(moveItem(boxes, index, index - 1))}
+              >
+                ↑
+              </button>
+              <button
+                type="button"
+                disabled={index === boxes.length - 1}
+                onClick={() => onChange(moveItem(boxes, index, index + 1))}
+              >
+                ↓
+              </button>
+              {boxes.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    onChange(
+                      boxes.filter((_, itemIndex) => itemIndex !== index),
+                    )
+                  }
+                >
+                  Remove
+                </button>
+              )}
+            </div>
+          </header>
+          <textarea
+            rows={8}
+            placeholder={
+              "Describe all related core functions here.\n\nUse separate lines or paragraphs for readability."
+            }
+            value={content}
+            onChange={(event) => change(index, event.target.value)}
+          />
+        </article>
+      ))}
+    </div>
+  );
 }
 
 function CustomSectionsEditor({

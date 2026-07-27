@@ -182,6 +182,7 @@ function normalizeProject(value: Partial<Project> & { title: string }): Project 
     updatedAt: value.updatedAt?.trim() || undefined,
     overview: cleanList(value.overview),
     features,
+    coreFunctionBoxes: cleanList(value.coreFunctionBoxes).slice(0, 12),
     screenshots,
     customSections,
     architecture: cleanList(value.architecture),
