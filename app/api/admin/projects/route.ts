@@ -49,6 +49,34 @@ function safePublicUrl(value: unknown) {
   }
 }
 
+function normalizeImage(value: unknown) {
+  if (!value || typeof value !== "object") return null;
+  const image = value as Partial<NonNullable<Project["screenshots"]>[number]>;
+  if (
+    typeof image.src !== "string" ||
+    !(
+      image.src.startsWith("/api/media?key=") ||
+      image.src.startsWith("/projects/") ||
+      image.src.startsWith("https://")
+    )
+  ) {
+    return null;
+  }
+  return {
+    src: image.src,
+    alt: typeof image.alt === "string" ? image.alt.trim() : "",
+    caption: typeof image.caption === "string" ? image.caption.trim() : "",
+    width:
+      typeof image.width === "number" && image.width > 0
+        ? Math.round(image.width)
+        : 1600,
+    height:
+      typeof image.height === "number" && image.height > 0
+        ? Math.round(image.height)
+        : 1000,
+  };
+}
+
 function normalizeProject(value: Partial<Project> & { title: string }): Project {
   const features = Array.isArray(value.features)
     ? value.features
@@ -71,13 +99,61 @@ function normalizeProject(value: Partial<Project> & { title: string }): Project 
         .filter((item) => item.question && item.answer)
     : [];
   const screenshots = Array.isArray(value.screenshots)
-    ? value.screenshots.filter(
-        (item) =>
-          typeof item?.src === "string" &&
-          (item.src.startsWith("/api/media?key=") ||
-            item.src.startsWith("/projects/") ||
-            item.src.startsWith("https://")),
-      )
+    ? value.screenshots
+        .slice(0, 30)
+        .map(normalizeImage)
+        .filter((item) => item !== null)
+    : [];
+  const customSections = Array.isArray(value.customSections)
+    ? value.customSections
+        .slice(0, 24)
+        .map((section) => {
+          const boxes = Array.isArray(section?.boxes)
+            ? section.boxes
+                .slice(0, 40)
+                .map((box) => {
+                  const images = Array.isArray(box?.images)
+                    ? box.images
+                        .slice(0, 12)
+                        .map(normalizeImage)
+                        .filter((item) => item !== null)
+                    : [];
+                  return {
+                    title:
+                      typeof box?.title === "string" ? box.title.trim() : "",
+                    content:
+                      typeof box?.content === "string"
+                        ? box.content.trim()
+                        : "",
+                    highlight:
+                      typeof box?.highlight === "string"
+                        ? box.highlight.trim()
+                        : "",
+                    images,
+                  };
+                })
+                .filter(
+                  (box) =>
+                    box.title ||
+                    box.content ||
+                    box.highlight ||
+                    box.images.length,
+                )
+            : [];
+          return {
+            title:
+              typeof section?.title === "string" ? section.title.trim() : "",
+            description:
+              typeof section?.description === "string"
+                ? section.description.trim()
+                : "",
+            boxes,
+          };
+        })
+        .filter(
+          (section) =>
+            section.title || section.description || section.boxes.length,
+        )
     : [];
 
   return {
@@ -107,6 +183,7 @@ function normalizeProject(value: Partial<Project> & { title: string }): Project 
     overview: cleanList(value.overview),
     features,
     screenshots,
+    customSections,
     architecture: cleanList(value.architecture),
     installation: cleanList(value.installation),
     usage: cleanList(value.usage),
@@ -168,7 +245,11 @@ export async function DELETE(request: Request) {
   const existing = await getLibraryProject(slug);
   await deleteProject(slug);
 
-  const mediaUrls = (existing?.screenshots ?? [])
+  const customImages =
+    existing?.customSections?.flatMap((section) =>
+      section.boxes.flatMap((box) => box.images),
+    ) ?? [];
+  const mediaUrls = [...(existing?.screenshots ?? []), ...customImages]
     .map((screenshot) => screenshot.src)
     .filter(
       (src) =>

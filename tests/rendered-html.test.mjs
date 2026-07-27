@@ -18,6 +18,10 @@ test("public library keeps discovery and project notes easy to reach", async () 
   assert.match(portfolio, /aria-label="Filter projects"/);
   assert.match(projectPage, /Project brief/);
   assert.match(projectPage, /Core functions/);
+  assert.match(projectPage, /compact-function-list/);
+  assert.match(projectPage, /project-custom-section/);
+  assert.match(projectPage, /project-content-box/);
+  assert.match(projectPage, /content-box-images/);
   assert.match(projectPage, /Screenshots/);
   assert.match(projectPage, /<details/);
   assert.match(projectPage, /sizes="\(max-width: 900px\) 90vw, 680px"\s+unoptimized/);
@@ -43,6 +47,11 @@ test("owner editor supports minimal projects and optional rich content", async (
   assert.match(editor, /multiple/);
   assert.match(editor, /Caption for this image/);
   assert.match(editor, /Optional questions and answers/);
+  assert.match(editor, /Custom project sections/);
+  assert.match(editor, /\+ Add section/);
+  assert.match(editor, /\+ Add box/);
+  assert.match(editor, /uploadBoxImages/);
+  assert.match(editor, /moveItem/);
   assert.match(editor, /prepareImage/);
   assert.match(editor, /project-library-backup/);
   assert.match(editor, /Export JSON/);
@@ -51,6 +60,9 @@ test("owner editor supports minimal projects and optional rich content", async (
   assert.match(projectsApi, /Project notes are being prepared\./);
   assert.match(projectsApi, /item\.question && item\.answer/);
   assert.match(projectsApi, /url\.protocol === "http:"/);
+  assert.match(projectsApi, /customSections/);
+  assert.match(projectsApi, /normalizeImage/);
+  assert.match(projectsApi, /section\.boxes\.flatMap/);
 });
 
 test("admin mutations use basic session and request protections", async () => {

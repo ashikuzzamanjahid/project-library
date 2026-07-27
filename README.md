@@ -4,8 +4,8 @@ A minimal, library-style portfolio for exploring software projects as living
 notes rather than product landing pages.
 
 Each project entry can include a brief, core functions, technologies,
-screenshots with individual captions, source and demo links, and optional
-question-and-answer notes.
+screenshots with individual captions, source and demo links, custom evidence
+sections, and optional question-and-answer notes.
 
 ## Features
 
@@ -15,16 +15,17 @@ question-and-answer notes.
 - Password-protected owner editor
 - Manual project creation and editing
 - Multiple screenshot uploads with captions and image descriptions
+- Reorderable custom sections containing text, highlighted results, boxes, and images
 - JSON export and import for backups and environment migration
 - Upstash Redis project storage
 - Vercel Blob screenshot storage
 
 ## Technology
 
-- Next.js-compatible routing through [vinext](https://github.com/cloudflare/vinext)
+- Next.js App Router
 - React and TypeScript
-- Cloudflare D1
-- Cloudflare R2
+- Upstash Redis
+- Vercel Blob
 - CSS with responsive layouts and persistent theme preference
 
 ## Local development

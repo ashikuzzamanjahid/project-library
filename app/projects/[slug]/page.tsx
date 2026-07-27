@@ -36,6 +36,8 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
       title: capability,
       description: `A core function of the ${project.title} project.`,
     }));
+  const customSections = project.customSections ?? [];
+  const questionsNumber = String(customSections.length + 4).padStart(2, "0");
 
   return (
     <div className="library-layout">
@@ -133,12 +135,14 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
               </div>
               <div className="compact-function-list">
                 {features.length ? (
-                  features.map((feature) => (
-                    <div key={feature.title}>
-                      <strong>{feature.title}</strong>
-                      <p>{feature.description}</p>
-                    </div>
-                  ))
+                  <ul>
+                    {features.map((feature, index) => (
+                      <li key={`${feature.title}-${index}`}>
+                        <strong>{feature.title}</strong>
+                        <p>{feature.description}</p>
+                      </li>
+                    ))}
+                  </ul>
                 ) : (
                   <p className="empty-note">
                     Functions have not been documented yet.
@@ -173,18 +177,74 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
               <div className="library-callout">
                 <strong>Screenshots have not been added yet.</strong>
                 <p>
-                  Add images under{" "}
-                  <code>public/projects/{project.slug}/</code> and list them in
-                  the project&apos;s screenshot field.
+                  The owner can upload project images and captions through the
+                  private editor.
                 </p>
               </div>
             )}
           </section>
 
+          {customSections.map((section, sectionIndex) => (
+            <section
+              className="project-custom-section"
+              key={`${section.title}-${sectionIndex}`}
+            >
+              <header className="custom-section-heading">
+                <span>{String(sectionIndex + 4).padStart(2, "0")}</span>
+                <div>
+                  <h2>{section.title || "Project notes"}</h2>
+                  {section.description && <p>{section.description}</p>}
+                </div>
+              </header>
+
+              {section.boxes.length > 0 && (
+                <div className="project-content-boxes">
+                  {section.boxes.map((box, boxIndex) => (
+                    <article
+                      className="project-content-box"
+                      key={`${box.title}-${boxIndex}`}
+                    >
+                      {(box.title || box.highlight) && (
+                        <header>
+                          {box.title && <h3>{box.title}</h3>}
+                          {box.highlight && (
+                            <strong className="content-box-highlight">
+                              {box.highlight}
+                            </strong>
+                          )}
+                        </header>
+                      )}
+                      {box.content && <p>{box.content}</p>}
+                      {box.images.length > 0 && (
+                        <div className="content-box-images">
+                          {box.images.map((image, imageIndex) => (
+                            <figure key={`${image.src}-${imageIndex}`}>
+                              <Image
+                                src={image.src}
+                                alt={image.alt}
+                                width={image.width}
+                                height={image.height}
+                                sizes="(max-width: 720px) 92vw, 520px"
+                                unoptimized
+                              />
+                              {image.caption && (
+                                <figcaption>{image.caption}</figcaption>
+                              )}
+                            </figure>
+                          ))}
+                        </div>
+                      )}
+                    </article>
+                  ))}
+                </div>
+              )}
+            </section>
+          ))}
+
           {project.questions?.length ? (
             <section className="project-questions">
               <div className="questions-heading">
-                <span>04</span>
+                <span>{questionsNumber}</span>
                 <div>
                   <h2>Questions and notes</h2>
                   <p>Open a question to read the additional project notes.</p>

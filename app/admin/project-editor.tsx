@@ -2,7 +2,11 @@
 
 import Image from "next/image";
 import { useMemo, useState } from "react";
-import type { Project } from "../data/projects";
+import type {
+  Project,
+  ProjectCustomSection,
+  ProjectImage,
+} from "../data/projects";
 
 function emptyProject(number: number): Project {
   return {
@@ -24,6 +28,7 @@ function emptyProject(number: number): Project {
     overview: [],
     features: [],
     screenshots: [],
+    customSections: [],
     architecture: [],
     installation: [],
     usage: [],
@@ -189,12 +194,23 @@ export function ProjectEditor({
       return;
     }
 
-    const screenshotCount = backup.projects.reduce(
-      (total, project) => total + (project.screenshots?.length ?? 0),
+    const imageReferenceCount = backup.projects.reduce(
+      (total, project) =>
+        total +
+        (project.screenshots?.length ?? 0) +
+        (project.customSections?.reduce(
+          (sectionTotal, section) =>
+            sectionTotal +
+            section.boxes.reduce(
+              (boxTotal, box) => boxTotal + box.images.length,
+              0,
+            ),
+          0,
+        ) ?? 0),
       0,
     );
-    const warning = screenshotCount
-      ? ` The backup contains ${screenshotCount} screenshot reference${screenshotCount === 1 ? "" : "s"}, but not the image files themselves.`
+    const warning = imageReferenceCount
+      ? ` The backup contains ${imageReferenceCount} image reference${imageReferenceCount === 1 ? "" : "s"}, but not the image files themselves.`
       : "";
     if (
       !window.confirm(
@@ -292,47 +308,99 @@ export function ProjectEditor({
     }
   }
 
-  async function uploadScreenshots(files: File[]) {
+  function imageUploadSlug() {
     if (!draft.title.trim()) {
-      setMessage("Add a project title before uploading images.");
-      return;
+      throw new Error("Add a project title before uploading images.");
     }
-    const uploadSlug =
+    return (
       draft.slug ||
       draft.title
         .toLowerCase()
         .trim()
         .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-|-$/g, "");
-    if (!draft.slug) update("slug", uploadSlug);
+        .replace(/^-|-$/g, "")
+    );
+  }
 
-    setBusy(true);
-    setMessage(`Uploading ${files.length} image${files.length === 1 ? "" : "s"}…`);
-    try {
-      const uploaded: NonNullable<Project["screenshots"]> = [];
-      for (const file of files) {
-        const prepared = await prepareImage(file);
-        const form = new FormData();
-        form.set("file", prepared.file);
-        form.set("slug", uploadSlug);
-        form.set("width", String(prepared.width));
-        form.set("height", String(prepared.height));
-        const response = await fetch("/api/admin/upload", {
-          method: "POST",
-          body: form,
-        });
-        const payload = await readResponse<{
-          screenshot?: NonNullable<Project["screenshots"]>[number];
-          error?: string;
-        }>(response);
-        if (!response.ok || !payload.screenshot) {
-          throw new Error(payload.error ?? `Could not upload ${file.name}.`);
-        }
-        uploaded.push(payload.screenshot);
+  async function sendImages(files: File[], uploadSlug: string) {
+    const uploaded: ProjectImage[] = [];
+    for (const file of files) {
+      const prepared = await prepareImage(file);
+      const form = new FormData();
+      form.set("file", prepared.file);
+      form.set("slug", uploadSlug);
+      form.set("width", String(prepared.width));
+      form.set("height", String(prepared.height));
+      const response = await fetch("/api/admin/upload", {
+        method: "POST",
+        body: form,
+      });
+      const payload = await readResponse<{
+        screenshot?: ProjectImage;
+        error?: string;
+      }>(response);
+      if (!response.ok || !payload.screenshot) {
+        throw new Error(payload.error ?? `Could not upload ${file.name}.`);
       }
-      update("screenshots", [...(draft.screenshots ?? []), ...uploaded]);
+      uploaded.push(payload.screenshot);
+    }
+    return uploaded;
+  }
+
+  async function uploadScreenshots(files: File[]) {
+    setBusy(true);
+    setMessage(
+      `Uploading ${files.length} image${files.length === 1 ? "" : "s"}…`,
+    );
+    try {
+      const uploadSlug = imageUploadSlug();
+      const uploaded = await sendImages(files, uploadSlug);
+      setDraft((current) => ({
+        ...current,
+        slug: current.slug || uploadSlug,
+        screenshots: [...(current.screenshots ?? []), ...uploaded],
+      }));
       setMessage(
         `${uploaded.length} image${uploaded.length === 1 ? "" : "s"} uploaded. Add a caption to each, then save.`,
+      );
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Upload failed.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function uploadBoxImages(
+    sectionIndex: number,
+    boxIndex: number,
+    files: File[],
+  ) {
+    setBusy(true);
+    setMessage(
+      `Uploading ${files.length} section image${files.length === 1 ? "" : "s"}…`,
+    );
+    try {
+      const uploadSlug = imageUploadSlug();
+      const uploaded = await sendImages(files, uploadSlug);
+      setDraft((current) => {
+        const sections = [...(current.customSections ?? [])];
+        const section = sections[sectionIndex];
+        const box = section?.boxes[boxIndex];
+        if (!section || !box) return current;
+        const boxes = [...section.boxes];
+        boxes[boxIndex] = {
+          ...box,
+          images: [...box.images, ...uploaded],
+        };
+        sections[sectionIndex] = { ...section, boxes };
+        return {
+          ...current,
+          slug: current.slug || uploadSlug,
+          customSections: sections,
+        };
+      });
+      setMessage(
+        `${uploaded.length} section image${uploaded.length === 1 ? "" : "s"} uploaded. Add captions, then save the project.`,
       );
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Upload failed.");
@@ -685,6 +753,19 @@ export function ProjectEditor({
 
           <EditorSection
             number="04"
+            title="Custom project sections"
+            description="Add optional sections for results, datasets, evaluations, experiments, or any other aspect of the project."
+          >
+            <CustomSectionsEditor
+              sections={draft.customSections ?? []}
+              busy={busy}
+              onChange={(sections) => update("customSections", sections)}
+              onUpload={uploadBoxImages}
+            />
+          </EditorSection>
+
+          <EditorSection
+            number="05"
             title="Links and ownership"
             description="Source, demo, documentation, and your contribution."
           >
@@ -732,7 +813,7 @@ export function ProjectEditor({
           </EditorSection>
 
           <EditorSection
-            number="05"
+            number="06"
             title="Optional questions and answers"
             description="Add only the questions you want. If this stays empty, no dropdown section appears."
           >
@@ -805,6 +886,363 @@ function EditorSection({
       </header>
       <div>{children}</div>
     </section>
+  );
+}
+
+function moveItem<T>(items: T[], from: number, to: number) {
+  if (to < 0 || to >= items.length) return items;
+  const next = [...items];
+  const [item] = next.splice(from, 1);
+  next.splice(to, 0, item);
+  return next;
+}
+
+function CustomSectionsEditor({
+  sections,
+  busy,
+  onChange,
+  onUpload,
+}: {
+  sections: ProjectCustomSection[];
+  busy: boolean;
+  onChange: (sections: ProjectCustomSection[]) => void;
+  onUpload: (
+    sectionIndex: number,
+    boxIndex: number,
+    files: File[],
+  ) => Promise<void>;
+}) {
+  function changeSection(
+    sectionIndex: number,
+    section: ProjectCustomSection,
+  ) {
+    const next = [...sections];
+    next[sectionIndex] = section;
+    onChange(next);
+  }
+
+  function changeBox(
+    sectionIndex: number,
+    boxIndex: number,
+    box: ProjectCustomSection["boxes"][number],
+  ) {
+    const section = sections[sectionIndex];
+    const boxes = [...section.boxes];
+    boxes[boxIndex] = box;
+    changeSection(sectionIndex, { ...section, boxes });
+  }
+
+  function addSection() {
+    onChange([
+      ...sections,
+      {
+        title: "",
+        description: "",
+        boxes: [],
+      },
+    ]);
+  }
+
+  return (
+    <div className="custom-sections-editor">
+      <div className="custom-sections-toolbar">
+        <div>
+          <strong>Manual sections</strong>
+          <small>
+            Sections and boxes appear in this order on the public project page.
+          </small>
+        </div>
+        <button type="button" onClick={addSection}>
+          + Add section
+        </button>
+      </div>
+
+      {!sections.length && (
+        <p className="admin-empty-state">
+          No custom sections yet. Add one when a project needs deeper results,
+          evidence, datasets, or visual explanations.
+        </p>
+      )}
+
+      {sections.map((section, sectionIndex) => (
+        <section className="custom-section-editor" key={sectionIndex}>
+          <header>
+            <span>SECTION {String(sectionIndex + 1).padStart(2, "0")}</span>
+            <div>
+              <button
+                type="button"
+                disabled={sectionIndex === 0}
+                onClick={() =>
+                  onChange(moveItem(sections, sectionIndex, sectionIndex - 1))
+                }
+              >
+                ↑ Up
+              </button>
+              <button
+                type="button"
+                disabled={sectionIndex === sections.length - 1}
+                onClick={() =>
+                  onChange(moveItem(sections, sectionIndex, sectionIndex + 1))
+                }
+              >
+                ↓ Down
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  onChange(
+                    sections.filter(
+                      (_, itemIndex) => itemIndex !== sectionIndex,
+                    ),
+                  )
+                }
+              >
+                Remove section
+              </button>
+            </div>
+          </header>
+
+          <div className="custom-section-fields">
+            <Field label="Section title">
+              <input
+                placeholder="Model evaluation"
+                value={section.title}
+                onChange={(event) =>
+                  changeSection(sectionIndex, {
+                    ...section,
+                    title: event.target.value,
+                  })
+                }
+              />
+            </Field>
+            <Field label="Section introduction">
+              <textarea
+                rows={3}
+                placeholder="Explain what this section helps the reader understand."
+                value={section.description}
+                onChange={(event) =>
+                  changeSection(sectionIndex, {
+                    ...section,
+                    description: event.target.value,
+                  })
+                }
+              />
+            </Field>
+          </div>
+
+          <div className="custom-boxes-editor">
+            <div className="custom-boxes-heading">
+              <strong>Content boxes</strong>
+              <button
+                type="button"
+                onClick={() =>
+                  changeSection(sectionIndex, {
+                    ...section,
+                    boxes: [
+                      ...section.boxes,
+                      {
+                        title: "",
+                        content: "",
+                        highlight: "",
+                        images: [],
+                      },
+                    ],
+                  })
+                }
+              >
+                + Add box
+              </button>
+            </div>
+
+            {!section.boxes.length && (
+              <p className="admin-empty-state">
+                Add boxes for individual results, comparisons, findings, or
+                visual evidence.
+              </p>
+            )}
+
+            {section.boxes.map((box, boxIndex) => (
+              <article className="custom-box-editor" key={boxIndex}>
+                <header>
+                  <span>BOX {String(boxIndex + 1).padStart(2, "0")}</span>
+                  <div>
+                    <button
+                      type="button"
+                      disabled={boxIndex === 0}
+                      onClick={() =>
+                        changeSection(sectionIndex, {
+                          ...section,
+                          boxes: moveItem(
+                            section.boxes,
+                            boxIndex,
+                            boxIndex - 1,
+                          ),
+                        })
+                      }
+                    >
+                      ↑
+                    </button>
+                    <button
+                      type="button"
+                      disabled={boxIndex === section.boxes.length - 1}
+                      onClick={() =>
+                        changeSection(sectionIndex, {
+                          ...section,
+                          boxes: moveItem(
+                            section.boxes,
+                            boxIndex,
+                            boxIndex + 1,
+                          ),
+                        })
+                      }
+                    >
+                      ↓
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        changeSection(sectionIndex, {
+                          ...section,
+                          boxes: section.boxes.filter(
+                            (_, itemIndex) => itemIndex !== boxIndex,
+                          ),
+                        })
+                      }
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </header>
+
+                <div className="custom-box-fields">
+                  <Field label="Box title">
+                    <input
+                      placeholder="Accuracy by model"
+                      value={box.title}
+                      onChange={(event) =>
+                        changeBox(sectionIndex, boxIndex, {
+                          ...box,
+                          title: event.target.value,
+                        })
+                      }
+                    />
+                  </Field>
+                  <Field label="Highlighted value or result">
+                    <input
+                      placeholder="94.2% validation accuracy"
+                      value={box.highlight}
+                      onChange={(event) =>
+                        changeBox(sectionIndex, boxIndex, {
+                          ...box,
+                          highlight: event.target.value,
+                        })
+                      }
+                    />
+                  </Field>
+                  <Field label="Explanation">
+                    <textarea
+                      rows={4}
+                      placeholder="Describe the result, method, comparison, or evidence."
+                      value={box.content}
+                      onChange={(event) =>
+                        changeBox(sectionIndex, boxIndex, {
+                          ...box,
+                          content: event.target.value,
+                        })
+                      }
+                    />
+                  </Field>
+                </div>
+
+                <label className="upload-control compact-upload-control">
+                  <span>
+                    {busy ? "Please wait…" : "+ Add pictures to this box"}
+                  </span>
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp,image/gif"
+                    multiple
+                    disabled={busy}
+                    onChange={(event) => {
+                      const files = Array.from(event.target.files ?? []);
+                      if (files.length) {
+                        void onUpload(sectionIndex, boxIndex, files);
+                      }
+                      event.target.value = "";
+                    }}
+                  />
+                </label>
+
+                <div className="admin-screenshots custom-box-images">
+                  {box.images.map((image, imageIndex) => (
+                    <div key={`${image.src}-${imageIndex}`}>
+                      <Image
+                        src={image.src}
+                        alt=""
+                        width={image.width}
+                        height={image.height}
+                        sizes="(max-width: 780px) 100vw, 300px"
+                        unoptimized
+                      />
+                      <label>
+                        <span>Image description</span>
+                        <input
+                          value={image.alt}
+                          placeholder="Describe what appears in the image"
+                          onChange={(event) => {
+                            const images = [...box.images];
+                            images[imageIndex] = {
+                              ...image,
+                              alt: event.target.value,
+                            };
+                            changeBox(sectionIndex, boxIndex, {
+                              ...box,
+                              images,
+                            });
+                          }}
+                        />
+                      </label>
+                      <label>
+                        <span>Image caption</span>
+                        <textarea
+                          rows={2}
+                          value={image.caption}
+                          placeholder="Explain what the image demonstrates"
+                          onChange={(event) => {
+                            const images = [...box.images];
+                            images[imageIndex] = {
+                              ...image,
+                              caption: event.target.value,
+                            };
+                            changeBox(sectionIndex, boxIndex, {
+                              ...box,
+                              images,
+                            });
+                          }}
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          changeBox(sectionIndex, boxIndex, {
+                            ...box,
+                            images: box.images.filter(
+                              (_, itemIndex) => itemIndex !== imageIndex,
+                            ),
+                          })
+                        }
+                      >
+                        Remove image
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      ))}
+    </div>
   );
 }
 

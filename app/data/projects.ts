@@ -1,3 +1,24 @@
+export type ProjectImage = {
+  src: string;
+  alt: string;
+  caption: string;
+  width: number;
+  height: number;
+};
+
+export type ProjectContentBox = {
+  title: string;
+  content: string;
+  highlight: string;
+  images: ProjectImage[];
+};
+
+export type ProjectCustomSection = {
+  title: string;
+  description: string;
+  boxes: ProjectContentBox[];
+};
+
 export type Project = {
   slug: string;
   number: string;
@@ -24,13 +45,8 @@ export type Project = {
     title: string;
     description: string;
   }[];
-  screenshots?: {
-    src: string;
-    alt: string;
-    caption: string;
-    width: number;
-    height: number;
-  }[];
+  screenshots?: ProjectImage[];
+  customSections?: ProjectCustomSection[];
   architecture?: string[];
   installation?: string[];
   usage?: string[];

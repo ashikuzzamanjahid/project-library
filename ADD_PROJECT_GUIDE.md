@@ -8,9 +8,9 @@ The preferred editing workflow is the private owner page:
 /admin
 ```
 
-The first authenticated owner of the private site claims the editor. That
-identity is stored in the site database. Every later create, update, delete, and
-image-upload request verifies the same owner on the server.
+The editor is protected by the server-side admin password and session secret.
+Every create, update, delete, and image-upload request verifies the private
+owner session.
 
 The editor supports:
 
@@ -20,6 +20,8 @@ The editor supports:
 - Adding, removing, and editing functions
 - Uploading screenshots
 - Writing screenshot descriptions and captions
+- Creating and reordering custom project sections
+- Adding reorderable content boxes with text, highlighted results, and images
 - Editing repository, demo, and documentation links
 - Adding architecture and installation steps
 - Adding usage notes, lessons, and next steps
@@ -121,6 +123,29 @@ Open `app/data/projects.ts` and add a new object inside the `projects` array.
       caption: "The main dashboard with recent processing activity.",
       width: 1600,
       height: 1000,
+    },
+  ],
+
+  customSections: [
+    {
+      title: "Model evaluation",
+      description: "A closer look at the experiment results.",
+      boxes: [
+        {
+          title: "Validation performance",
+          highlight: "94.2% accuracy",
+          content: "Explain the result, comparison, and evaluation conditions.",
+          images: [
+            {
+              src: "/projects/my-project/evaluation.webp",
+              alt: "Chart comparing validation performance across models",
+              caption: "The selected model achieved the strongest result.",
+              width: 1600,
+              height: 1000,
+            },
+          ],
+        },
+      ],
     },
   ],
 
